@@ -6,6 +6,11 @@ from datetime import timedelta, datetime
 import tkinter as tk
 from tkinter import messagebox 
 import argparse
+from datetime import datetime
+
+current_date_str = datetime.now().strftime('%Y-%m-%d')
+with open('current_date.txt', 'w') as file:
+    file.write(current_date_str)
 
 #Function to get inventory items
 def get_inventory():
