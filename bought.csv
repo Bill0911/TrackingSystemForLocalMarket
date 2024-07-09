@@ -1,2 +1,4 @@
 id, product_name, buy_date, buy_price, expiration_date
 2,orange,2021-05-22,0.8,2021-01-01
+3,milk,2021-05-22,1.5,2023-12-31
+4,milk,2024-09-07,1.5,2024-2-1

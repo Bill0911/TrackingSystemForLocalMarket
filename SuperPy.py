@@ -17,7 +17,8 @@ def get_inventory():
     for row in csv_reader:
        all_rows.append(row)
     return all_rows
-
+   
+   
 
 def validate_date(date_string):
    try:
@@ -26,6 +27,7 @@ def validate_date(date_string):
    except ValueError:
       sys.stdout.write("Invalid expiration date. It must be formatted like YYYY-MM-DD")
       return False
+   
 
 
 def get_date():
@@ -41,6 +43,7 @@ def buy_product(id, product_name, price, expiry, buy_date):
        writer.writerow([id, product_name, buy_date, price, expiry])
    sys.stdout.write("OK")
    messagebox.showinfo("Buy", "Item bought successfully!")
+   pass
 
 
 def sell_product(id, product_name, product_price, inventory, current_date):
@@ -108,74 +111,62 @@ def report_revenue(report_date, current_date):
 
    sys.stdout.write("Revenue so far: " + str(revenue))
 
+def handle_buy(args, current_date, last_item_id, inventory):
+    if validate_date(args.expiry):
+       buy_product(last_item_id + 1, args.product_name, args.price, args.expiry, current_date)
 
+def handle_report(args, current_date, inventory):
+   if args.report_type == "inventory":
+      report_inventory(current_date, inventory, args.filter)
+   elif args.report_type == "revenue":
+      report_revenue(args.filter, current_date)
+
+def handle_sell(args, current_date, last_item_id, inventory):
+   sell_product(last_item_id, args.product_name, args.product_price, inventory, current_date)
+
+def handle_advance_time(args):
+   advance_time(args.days)
 
 def main():
-   #Holds current date frin the text file
-   current_date = get_date()
+   parser = argparse.ArgumentParser(description="Tracking prouduct system")
+   subparsers = parser.add_subparsers(help='commands')
 
-   #Holds the inventory
-   inventory = get_inventory()
+   #buy command
+   buy_parser = subparsers.add_parser('buy', help='buy a product')
+   buy_parser.add_argument('product_name')
+   buy_parser.add_argument('price', type=float)
+   buy_parser.add_argument('expiry')
+   buy_parser.set_defaults(func=handle_buy)
+
+   #report command
+   report_parser = subparsers.add_parser('report', help='generate a report')
+   report_parser.add_argument('report_type', choices=['inventory', 'revenue'])
+   report_parser.add_argument('filter', nargs='?', default=None)
+   report_parser.set_defaults(func=handle_report)
+
+   #sell command
+   sell_parser = subparsers.add_parser('sell', help='Sell a product')
+   sell_parser.add_argument('product_name')
+   sell_parser.add_argument('product_price', type=float)
+   sell_parser.set_defaults(func=handle_sell)
+
+   # advance-time command
+   advance_time_parser = subparsers.add_parser('--advance-time', help='Advance time')
+   advance_time_parser.add_argument('days', type=int)
+   advance_time_parser.set_defaults(func=handle_advance_time)
+
+   args = parser.parse_args(sys.argv[1:])
+
+   current_date = get_date()
+   inventory =get_inventory()
    try:
       last_item_id = int(inventory[-1][0])
    except ValueError:
       last_item_id = 1
-   args = sys.argv
-   if len(args) > 1 and args[1] == "buy":
-      product_name = args[3]
-      price = args[5]
-      expiry = args[7]
-      buy_date = current_date
-      if validate_date(expiry):
-         buy_product(last_item_id + 1, product_name, price, expiry, buy_date)
-
-   elif len(args) > 1 and args[1] == "report":
-      if args[2] == "inventory":
-         report_inventory(current_date, inventory, args[3])
-      elif args[2] == "revenue":
-         if args[3] == "--date":
-            report_revenue([args[3], args[4]], current_date)
-         else:
-            report_revenue([args[3]], current_date)
-   elif len(args) > 1 and args[1] == "sell":
-      product_name = args[3]
-      product_price = args[5]
-      sell_product(last_item_id, product_name, product_price, inventory, current_date)
-
-   elif len(args) > 1 and args[1] == "--advance-time":
-      advance_time(int(args[2]))
+   
+   if hasattr(args, 'func'):
+      args.func(args, current_date, last_item_id, inventory)
+   else:
+      parser.print_help()
 if __name__ == "__main__":
-   if __name__ == "__main__":
-    import sys
-    if "--gui" in sys.argv:
-        # GUI code
-        app = tk.Tk()
-        app.title("SuperPy Market")
-
-        buy_button = tk.Button(app, text="Buy Item", command=buy_item)
-        buy_button.pack(pady=10)
-
-        sell_button = tk.Button(app, text="Sell Item", command=sell_item)
-        sell_button.pack(pady=10)
-
-        app.mainloop()
-    else:
-        # CLI logic
-        parser = argparse.ArgumentParser(description="SuperPy Market Operations")
-        subparsers = parser.add_subparsers()
-
-        # Buy command
-        parser_buy = subparsers.add_parser('buy', help='Buy an item')
-        parser_buy.add_argument('item_name', type=str, help='Name of the item to buy')
-        parser_buy.set_defaults(func=buy_item_cli)
-
-        # Sell command
-        parser_sell = subparsers.add_parser('sell', help='Sell an item')
-        parser_sell.add_argument('item_name', type=str, help='Name of the item to sell')
-        parser_sell.set_defaults(func=sell_item_cli)
-
-        args = parser.parse_args()
-        if hasattr(args, 'func'):
-            args.func(args)
-        else:
-            parser.print_help()
+    main()
