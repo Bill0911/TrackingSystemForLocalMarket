@@ -100,11 +100,14 @@ def advance_time(days_to_increase):
 
 
 def report_revenue(report_date, current_date):
+   if report_date is None:
+      print("No date filter provided. Please specify a date filter.")
+      return
    revenue = 0
    if report_date[0] == "--yesterday":
       current_date = get_date()
       dt = datetime.strptime(current_date, '%Y-%m-%d')
-      yesterday = dt + timedelta(days = days_to_increase)
+      yesterday = dt + timedelta(days = -1)
       current_date = yesterday.strftime('%Y-%m-%d')
    elif report_date[0] == "--date":
       current_date = report_date[1]
@@ -132,46 +135,63 @@ def handle_sell(args, current_date, last_item_id, inventory):
 def handle_advance_time(args):
    advance_time(args.days)
 
+def get_last_item_id():
+    # Implement logic to retrieve the last item ID from 'bought.csv'
+    # For example, read the file, extract the id column, and return the max value
+    with open('bought.csv', 'r') as file:
+        reader = csv.reader(file)
+        next(reader)  # Skip header
+        ids = [int(row[0]) for row in reader if row]  # Assuming the ID is always the first column and is an integer
+    return max(ids, default=0)  # Return 0 if the list is empty
+
 def main():
-   parser = argparse.ArgumentParser(description="Tracking prouduct system")
-   subparsers = parser.add_subparsers(help='commands')
+    parser = argparse.ArgumentParser(description="Tracking product system")
+    subparsers = parser.add_subparsers(help='commands')
 
-   #buy command
-   buy_parser = subparsers.add_parser('buy', help='buy a product')
-   buy_parser.add_argument('product_name')
-   buy_parser.add_argument('price', type=float)
-   buy_parser.add_argument('expiry')
-   buy_parser.set_defaults(func=handle_buy)
+    args = parser.parse_args()
 
-   #report command
-   report_parser = subparsers.add_parser('report', help='generate a report')
-   report_parser.add_argument('report_type', choices=['inventory', 'revenue'])
-   report_parser.add_argument('filter', nargs='?', default=None)
-   report_parser.set_defaults(func=handle_report)
+    last_item_id = get_last_item_id()
 
-   #sell command
-   sell_parser = subparsers.add_parser('sell', help='Sell a product')
-   sell_parser.add_argument('product_name')
-   sell_parser.add_argument('product_price', type=float)
-   sell_parser.set_defaults(func=handle_sell)
+    # buy command
+    buy_parser = subparsers.add_parser('buy', help='buy a product')
+    buy_parser.add_argument('product_name')
+    buy_parser.add_argument('price', type=float)
+    buy_parser.add_argument('expiry')
+    buy_parser.set_defaults(func=handle_buy)
 
-   # advance-time command
-   advance_time_parser = subparsers.add_parser('--advance-time', help='Advance time')
-   advance_time_parser.add_argument('days', type=int)
-   advance_time_parser.set_defaults(func=handle_advance_time)
+    # report command
+    report_parser = subparsers.add_parser('report', help='generate a report')
+    report_parser.add_argument('report_type', choices=['inventory', 'revenue'])
+    report_parser.add_argument('filter', nargs='?', default=None)
+    report_parser.set_defaults(func=handle_report)
 
-   args = parser.parse_args(sys.argv[1:])
+    # sell command
+    sell_parser = subparsers.add_parser('sell', help='Sell a product')
+    sell_parser.add_argument('product_name')
+    sell_parser.add_argument('product_price', type=float)
+    sell_parser.set_defaults(func=handle_sell)
 
-   current_date = get_date()
-   inventory =get_inventory()
-   try:
-      last_item_id = int(inventory[-1][0])
-   except ValueError:
-      last_item_id = 1
-   
-   if hasattr(args, 'func'):
-      args.func(args, current_date, last_item_id, inventory)
-   else:
-      parser.print_help()
+    # advance-time command
+    advance_time_parser = subparsers.add_parser('--advance-time', help='Advance time')
+    advance_time_parser.add_argument('days', type=int)
+    advance_time_parser.set_defaults(func=handle_advance_time)
+
+    args = parser.parse_args(sys.argv[1:])
+
+    current_date = get_date()
+    inventory = get_inventory()
+
+    # Removed the problematic line checking for args.command
+
+    try:
+        last_item_id = int(inventory[-1][0])
+    except ValueError:
+        last_item_id = 1
+
+    if hasattr(args, 'func'):
+        args.func(args, current_date=current_date, inventory=inventory, last_item_id=last_item_id)  # Adjusted to pass additional arguments if needed
+    else:
+        parser.print_help()
+
 if __name__ == "__main__":
     main()
