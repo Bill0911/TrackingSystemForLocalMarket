@@ -100,27 +100,34 @@ def advance_time(days_to_increase):
 
 
 def report_revenue(report_date, current_date):
-   revenue = 0
-   if report_date[0] == "--yesterday":
-      current_date = get_date()
-      dt = datetime.strptime(current_date, '%Y-%m-%d')
-      yesterday = dt + timedelta(days = days_to_increase)
-      current_date = yesterday.strftime('%Y-%m-%d')
-   elif report_date[0] == "--date":
-      current_date = report_date[1]
-   with open('sold.csv', mode='r') as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    for row in csv_reader:
-       if row[2] == current_date:
-         revenue += float(row[-1])
+    if report_date is None:
+        print("No date filter provided. Please specify a date filter.")
+        return
+    revenue = 0
+    if report_date[0] == "--yesterday":
+        dt = datetime.strptime(current_date, '%Y-%m-%d')
+        yesterday = dt + timedelta(days=-1)
+        current_date = yesterday.strftime('%Y-%m-%d')
+    elif report_date[0] == "--date":
+        current_date = report_date[1]
+    
+    try:
+        with open('sold.csv', mode='r') as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            for row in csv_reader:
+                if row[2] == current_date:
+                    revenue += float(row[-1])
+    except Exception as e:
+        print(f"Failed to read 'sold.csv': {e}")
+        return
 
-   sys.stdout.write("Revenue so far: " + str(revenue))
+    sys.stdout.write(f"Revenue so far: {revenue}")
 
 def handle_buy(args, current_date, last_item_id, inventory):
     if validate_date(args.expiry):
        buy_product(last_item_id + 1, args.product_name, args.price, args.expiry, current_date)
 
-def handle_report(args, current_date, inventory):
+def handle_report(args, current_date, last_item_id, inventory):
    if args.report_type == "inventory":
       report_inventory(current_date, inventory, args.filter)
    elif args.report_type == "revenue":
